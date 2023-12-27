@@ -1,0 +1,118 @@
+from discord.ext.commands import command , cooldown
+import discord
+from discord.ext import commands
+
+bot = commands.Bot(command_prefix = "m!", intents = discord.Intents.all())
+
+@bot.command()
+async def bonjour(ctx):
+  message = "👋 **Salut à toi !** **Comment tu va ?**"
+  await ctx.send(message)
+
+@bot.command()
+async def allcmd(ctx):
+  message = "`m!bonjour` : Le bot envoyera un message de salutation."
+  message = message + "`m!allcmd` : Le bot envoyera la liste de toute les commandes."
+  await ctx.send(message)
+
+@bot.command()
+async def showhelp(ctx):
+    embed = discord.Embed(title="Commande Help", description="**Voici la liste de toute les commandes présente sur le bot.**", color=0xff0000)
+    embed.add_field(name="`m!bonjour`", value="Voici les commandes utilitaire : `!bonjour` : Le bot vous fera une salutation", inline=False)
+    embed.add_field(name="`m!help`", value="Ce que vous voyez maintenant.", inline=False)
+    embed.add_field(name="`m!ban`", value="Bannissez quelqu'u du serveur.", inline=False)
+    embed.add_field(name="`m!kick`", value="Expulser quelqu'un du serveur.", inline=False) 
+    embed.set_footer(text="Executé par : " + str(ctx.author))
+    await ctx.send(embed=embed)
+
+@bot.command()
+@commands.has_permissions(ban_members=True)
+async def ban(ctx, member: discord.Member, *, reason="No reason provided"):
+    await member.ban(reason=reason)
+    await ctx.send(f"{member.mention} vient d'être banni ! Raison : `{reason}`")
+
+
+@bot.command()
+@commands.has_permissions(kick_members=True)
+async def kick(ctx, member: discord.Member, *, reason=None):
+      """Kick un utilisateur."""
+      await member.kick(reason=reason)
+
+      try:
+          await member.send(f"Vous avez été kické du serveur {ctx.guild.name} pour la raison : {reason}")
+      except:
+          pass
+
+      await ctx.send(f"{member} a été kické pour la raison : {reason}")
+
+
+@bot.command()
+async def dm(ctx, member: discord.Member, *, message):
+    await member.send(message)
+
+
+@bot.command()
+async def ticket(ctx, *, message="**Expliquez votre problème ici.**"):
+    overwrites = {
+        ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+        ctx.author: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+    }
+    category = discord.utils.get(ctx.guild.categories, name="Tickets")
+    if category is None:
+        category = await ctx.guild.create_category(name="Tickets")
+    channel = await category.create_text_channel(f"{ctx.author.name}-ticket", overwrites=overwrites)
+    await channel.send(f"{ctx.author.mention}, {message}")
+    message = "**Ton ticket a été créé avec succès !**"
+    await ctx.send(message)
+
+
+@bot.command()
+async def renew(ctx, channel: discord.TextChannel):
+    overwrites = channel.overwrites
+    category = channel.category
+    await channel.delete()
+    new_channel = await category.create_text_channel(channel.name, overwrites=overwrites)
+    await channel.send(f"{new_channel.mention} **Salon recréé.**")
+
+@bot.command()
+async def lock(ctx, channel: discord.TextChannel):
+    overwrite = channel.overwrites_for(ctx.guild.default_role)
+    overwrite.send_messages = False
+    await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite)
+    await ctx.send(f"**Le salon {channel.mention} a été fermé à tous !**")
+
+@bot.command()
+async def unlock(ctx, channel: discord.TextChannel):
+    overwrite = channel.overwrites_for(ctx.guild.default_role)
+    overwrite.send_messages = True
+    await channel.set_permissions(ctx.guild.default_role, overwrite=overwrite)
+    await ctx.send(f"**Le salon {channel.mention} a été ouvert à tous !**.")
+
+@bot.command()
+async def love(ctx, member: discord.Member):
+    await ctx.send(f"{ctx.author.mention} **est en couple avec {member.mention} ❤️**")
+
+
+@bot.command()
+async def purge(ctx, amount=5):
+  await ctx.channel.purge(limit=amount)
+  await ctx.send(f"**{amount} messages ont été supprimés !**")
+
+@bot.event
+async def on_member_join(member):
+    channel = bot.get_channel(1187801139379454063) 
+    welcome_message = f"Bienvenue dans le serveur {member.mention} ! Passe un bon moment !."
+    await channel.send(welcome_message)
+
+@bot.command()
+async def changeprefix(ctx, new_prefix):
+    bot.command_prefix = new_prefix
+    await ctx.send(f'Le préfixe du bot a été changé en "{new_prefix}"')
+
+
+@bot.event
+async def on_ready():
+    await  bot.change_presence(activity=discord.Streaming(name="Main.py", url="Lien twitch_")) # Remplacez *Lien twitch* par un lien twitch.
+
+
+bot.run("Token bot") # Remplacez *Token bot* par le bon token de votre application.
